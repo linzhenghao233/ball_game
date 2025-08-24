@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词记忆小游戏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>单词持续挑战</h1>
+            <div class="stats-bar"> <div class="progress">
+                    <h2>已匹配: <span id="matchedCount">0</span> / <span id="totalCount">0</span></h2>
+                </div>
+                <div class="scoreboard">
+                    <h2>得分: <span id="score">0</span></h2>
+                    <h2>最高分: <span id="highScore">0</span></h2>
+                </div>
+            </div>
+            <div class="combo-display" id="comboDisplay"></div>
+        </header>
+
+        <div class="game-area">
+            <div id="wordsContainer" class="column">
+                <div class="placeholder">请先加载单词文件</div>
+            </div>
+            <div id="defsContainer" class="column">
+                <div class="placeholder">释义将显示在这里</div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="controls">
+                <div class="control-group">
+                    <label for="fileInput">1. 选择文件 (.txt):</label>
+                    <input type="file" id="fileInput" accept=".txt">
+                </div>
+                <div class="control-group">
+                    <label for="maxBallsInput">2. 屏幕球数 (偶数):</label>
+                    <input type="number" id="maxBallsInput" value="12" min="2" max="40" step="2">
+                </div>
+                <button id="startButton" disabled>开始 / 重置</button>
+            </div>
+        </footer>
+    </div>
+
+<script src="script.js"></script>
+
+    <div id="audio-container" style="display: none;">
+        <audio id="selectSound" src="audio/select.mp3" preload="auto"></audio>
+        <audio id="matchSound" src="audio/match.mp3" preload="auto"></audio>
+        <audio id="errorSound" src="audio/error.mp3" preload="auto"></audio>
+        <audio id="comboSound" src="audio/combo.mp3" preload="auto"></audio>
+        <audio id="winSound" src="audio/win.mp3" preload="auto"></audio>
+    </div>
+
+</body>
+</html>

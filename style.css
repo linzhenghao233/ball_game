@@ -1,0 +1,228 @@
+/* 全局样式 */
+:root {
+    --primary-color: #007bff;
+    --word-color: #28a745;
+    --def-color: #17a2b8;
+    --bg-dark: #2c3e50;
+    --bg-light: #34495e;
+    --text-color: #ecf0f1;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden; /* 防止滚动 */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-color);
+}
+
+/* 全屏容器布局 */
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+}
+
+header {
+    padding: 10px 20px;
+    background-color: rgba(0,0,0,0.2);
+    text-align: center;
+    flex-shrink: 0; /* 防止头部被压缩 */
+    position: relative; /* 为连击显示提供定位上下文 */
+}
+
+header h1 {
+    font-size: 1.5em;
+    margin-bottom: 5px;
+}
+
+.progress h2 {
+    font-size: 1em;
+    font-weight: normal;
+}
+
+/* 游戏区域 */
+.game-area {
+    display: flex;
+    flex-grow: 1; /* 关键：让游戏区域占据所有剩余空间 */
+    gap: 10px;
+    padding: 10px;
+    min-height: 0; /* flexbox bug fix for overflow */
+}
+
+.column {
+    flex: 1;
+    background-color: var(--bg-light);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    border: 2px dashed #4a6572;
+}
+
+.placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #95a5a6;
+    font-size: 1.2em;
+}
+
+/* 底部控制栏 */
+footer {
+    padding: 15px 20px;
+    background-color: rgba(0,0,0,0.3);
+    flex-shrink: 0;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+    flex-wrap: wrap;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+label {
+    font-weight: bold;
+}
+
+input[type="number"] {
+    width: 60px;
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #7f8c8d;
+    background: var(--bg-dark);
+    color: var(--text-color);
+    font-size: 1em;
+}
+
+button {
+    padding: 8px 18px;
+    font-size: 1em;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, opacity 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+button:disabled {
+    background-color: #555;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+
+/* 小球样式 */
+.ball {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
+    width: 110px; /* 稍微增大一点 */
+    height: 110px;
+    border-radius: 50%;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    transition: all 0.3s;
+    text-align: center;
+    word-break: break-word;
+    animation: float 10s ease-in-out infinite;
+}
+/* ... 其他小球样式和动画 (shake, matched, float) 保持不变 ... */
+.word-ball { background-color: var(--word-color); }
+.def-ball { background-color: var(--def-color); }
+.ball:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.4); transform: scale(1.05); }
+.ball.selected { background-color: #ffc107; color: #333; animation-play-state: paused; }
+.ball.shake { animation: shake 0.5s ease-in-out; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.ball.matched { animation: matched 0.5s ease-in-out forwards; }
+@keyframes matched { from { transform: scale(1); opacity: 1; } to { transform: scale(0); opacity: 0; } }
+@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0px); } }
+
+
+/* 记忆提示样式 */
+.hint-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 12px 25px;
+    border-radius: 20px;
+    z-index: 1000;
+    font-size: 1.1em;
+    animation: fadeInOut 4s ease-in-out;
+}
+
+.stats-bar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.scoreboard {
+    text-align: right;
+}
+
+.scoreboard h2 {
+    font-size: 1em;
+    font-weight: normal;
+}
+
+#score {
+    color: #f1c40f; /* 金黄色分数 */
+    font-weight: bold;
+}
+
+#highScore {
+    color: #95a5a6;
+}
+
+/* 连击显示样式 */
+.combo-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 3em;
+    font-weight: bold;
+    color: rgba(236, 240, 241, 0.8);
+    opacity: 0;
+    transition: all 0.5s;
+    pointer-events: none; /* 让鼠标可以穿透它 */
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+}
+
+.combo-display.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+}
+@keyframes fadeInOut { 0% { opacity: 0; top: 0; } 20% { opacity: 1; top: 20px; } 80% { opacity: 1; top: 20px; } 100% { opacity: 0; top: 0; } }

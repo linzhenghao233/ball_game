@@ -1,0 +1,8 @@
+# 这是注释行，程序会自动忽略
+# 格式: 中文释义|英文单词|记忆提示 (提示是可选的)
+
+范例|paradigm|para- (旁边) + digm (显示) -> 放在旁边展示的东西
+无处不在的|ubiquitous|来自拉丁语 ubique，意为“everywhere”
+短暂的|ephemeral|
+恢复力|resilience|re- (再次) + salire (跳) -> 能再次跳起来的能力
+雄辩的|eloquent|e- (出) + loqui (说) -> 能说出来
