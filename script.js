@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // DOM Elements
     const fileInput = document.getElementById('fileInput');
     const startButton = document.getElementById('startButton');
     const maxBallsInput = document.getElementById('maxBallsInput');
@@ -11,20 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const highScoreSpan = document.getElementById('highScore');
     const comboDisplay = document.getElementById('comboDisplay');
 
-    // NEW: 为不同设备定义两套自适应尺寸方案
     const SIZE_PROFILES = {
-        desktop: {
-            minPixel: 90,
-            maxPixel: 140,
-            minVmin: 9,
-            maxVmin: 13,
-        },
-        mobile: {
-            minPixel: 60,
-            maxPixel: 95,
-            minVmin: 12,
-            maxVmin: 16,
-        }
+        desktop: { minPixel: 90, maxPixel: 140, minVmin: 9, maxVmin: 13 },
+        mobile: { minPixel: 60, maxPixel: 95, minVmin: 12, maxVmin: 16 }
     };
 
     const AudioManager = {
@@ -64,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function parseTxt(text) {
         const activeSizes = window.innerWidth < 500 ? SIZE_PROFILES.mobile : SIZE_PROFILES.desktop;
-        
         const lines = text.split('\n').filter(line => line.trim() !== '' && !line.trim().startsWith('#'));
         const parsedData = [];
         lines.forEach((line, index) => {
@@ -100,12 +87,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const maxBalls = parseInt(maxBallsInput.value) || 10;
         const currentBalls = wordsContainer.children.length + defsContainer.children.length;
         const pairsToCreate = (maxBalls - currentBalls) / 2;
+
         for (let i = 0; i < pairsToCreate; i++) {
             if (wordPool.length > 0) {
                 const item = wordPool.pop();
-                createSinglePairOfBalls(item);
+                const success = createSinglePairOfBalls(item);
+                if (!success) {
+                    wordPool.push(item);
+                    console.warn("Screen is full. Stopped adding new balls.");
+                    break;
+                }
             }
         }
+        
+        const finalBallCount = wordsContainer.children.length + defsContainer.children.length;
+        maxBallsInput.value = finalBallCount;
     }
 
     function createSinglePairOfBalls(item) {
@@ -118,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
         wordBall.textContent = item.word;
         wordBall.style.width = sizeString;
         wordBall.style.height = sizeString;
-        placeBall(wordBall, wordsContainer, activeSizes.maxPixel);
         
         const defBall = document.createElement('div');
         defBall.className = 'ball def-ball';
@@ -126,32 +121,45 @@ document.addEventListener('DOMContentLoaded', () => {
         defBall.textContent = item.def;
         defBall.style.width = sizeString;
         defBall.style.height = sizeString;
-        placeBall(defBall, defsContainer, activeSizes.maxPixel);
+
+        const wordPosSuccess = placeBall(wordBall, wordsContainer, activeSizes.maxPixel);
+        if (!wordPosSuccess) return false;
         
+        const defPosSuccess = placeBall(defBall, defsContainer, activeSizes.maxPixel);
+        if (!defPosSuccess) return false;
+
         wordsContainer.appendChild(wordBall);
         defsContainer.appendChild(defBall);
+        return true;
     }
 
     function placeBall(ball, container, safetySize) {
         const containerRect = container.getBoundingClientRect();
-        if (containerRect.width === 0) return;
+        if (containerRect.width < safetySize || containerRect.height < safetySize) return false;
+
         const existingBalls = Array.from(container.children).map(child => ({
             left: parseFloat(child.style.left),
             top: parseFloat(child.style.top),
         }));
+        
         let pos, attempts = 0;
-        const margin = 5; // 在手机上可以减小一点强制间距
+        const maxAttempts = 200;
+        const margin = 5;
+
         do {
             pos = {
                 left: Math.random() * (containerRect.width - safetySize),
                 top: Math.random() * (containerRect.height - safetySize)
             };
             attempts++;
-        } while (isOverlapping(pos, safetySize, existingBalls, margin) && attempts < 200);
+            if (attempts >= maxAttempts) return false;
+        } while (isOverlapping(pos, safetySize, existingBalls, margin));
+
         ball.style.left = `${pos.left}px`;
         ball.style.top = `${pos.top}px`;
         ball.style.animationDelay = `${Math.random() * -10}s`;
         ball.addEventListener('click', handleBallClick);
+        return true;
     }
 
     function isOverlapping(newPos, newSafetySize, existingBalls, margin) {
@@ -159,9 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const dx = (newPos.left + newSafetySize / 2) - (existingBall.left + newSafetySize / 2);
             const dy = (newPos.top + newSafetySize / 2) - (existingBall.top + newSafetySize / 2);
             const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < newSafetySize + margin) {
-                return true;
-            }
+            if (distance < newSafetySize + margin) return true;
         }
         return false;
     }
@@ -174,16 +180,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const isWord = clickedBall.classList.contains('word-ball');
         if (isWord) {
             if (selectedWord) selectedWord.element.classList.remove('selected');
-            if (selectedWord?.element === clickedBall) {
-                selectedWord = null; return;
-            }
+            if (selectedWord?.element === clickedBall) { selectedWord = null; return; }
             selectedWord = { element: clickedBall, id: id };
             clickedBall.classList.add('selected');
         } else {
             if (selectedDef) selectedDef.element.classList.remove('selected');
-            if (selectedDef?.element === clickedBall) {
-                selectedDef = null; return;
-            }
+            if (selectedDef?.element === clickedBall) { selectedDef = null; return; }
             selectedDef = { element: clickedBall, id: id };
             clickedBall.classList.add('selected');
         }
