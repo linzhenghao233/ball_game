@@ -11,55 +11,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const highScoreSpan = document.getElementById('highScore');
     const comboDisplay = document.getElementById('comboDisplay');
 
-    // --- 音频系统：已换回简单的 <audio> 标签方案 ---
-    const selectSound = document.getElementById('selectSound');
-    const matchSound = document.getElementById('matchSound');
-    const errorSound = document.getElementById('errorSound');
-    const comboSound = document.getElementById('comboSound');
-    const winSound = document.getElementById('winSound');
-    let isAudioUnlocked = false;
-
-    // 自适应尺寸的配置
-    const RESPONSIVE_SIZES = {
-        minPixel: 90,
-        maxPixel: 140,
-        minVmin: 9,
-        maxVmin: 13,
+    // NEW: 为不同设备定义两套自适应尺寸方案
+    const SIZE_PROFILES = {
+        desktop: {
+            minPixel: 90,
+            maxPixel: 140,
+            minVmin: 9,
+            maxVmin: 13,
+        },
+        mobile: {
+            minPixel: 60,
+            maxPixel: 95,
+            minVmin: 12,
+            maxVmin: 16,
+        }
     };
 
-    // Game State
+    const AudioManager = {
+        audioContext: null, soundBuffers: {}, isLoaded: false,
+        init() { try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { console.error("Web Audio API is not supported in this browser"); } },
+        async loadSound(name, url) { if (!this.audioContext || this.soundBuffers[name]) return; try { const response = await fetch(url); const arrayBuffer = await response.arrayBuffer(); const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer); this.soundBuffers[name] = audioBuffer; } catch (e) { console.error(`Failed to load sound: ${name}`, e); } },
+        async loadAll() { if (this.isLoaded || !this.audioContext) return; await Promise.all([ this.loadSound('select', 'audio/select.mp3'), this.loadSound('match', 'audio/match.mp3'), this.loadSound('error', 'audio/error.mp3'), this.loadSound('combo', 'audio/combo.mp3'), this.loadSound('win', 'audio/win.mp3') ]); this.isLoaded = true; console.log("All sounds loaded."); },
+        play(name) { if (!this.audioContext || !this.soundBuffers[name]) return; if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.soundBuffers[name]; source.connect(this.audioContext.destination); source.start(0); }
+    };
+
     let masterWordList = [], wordPool = [], selectedWord = null, selectedDef = null;
     let matchedPairs = 0, score = 0, combo = 0, isProcessing = false;
     let highScore = localStorage.getItem('wordGameHighScore') || 0;
 
-    // --- Setup ---
     highScoreSpan.textContent = highScore;
     fileInput.addEventListener('change', handleFileSelect);
     startButton.addEventListener('click', startGame);
-    
-    // --- 音频辅助函数 ---
-    function playSound(sound) {
-        if (sound) {
-            sound.currentTime = 0;
-            sound.play();
-        }
-    }
-    
-    function unlockAudio() {
-        if (isAudioUnlocked) return;
-        console.log("Unlocking audio...");
-        const sounds = [selectSound, matchSound, errorSound, comboSound, winSound];
-        sounds.forEach(sound => {
-            if (sound) {
-                sound.play();
-                sound.pause();
-                sound.currentTime = 0;
-            }
-        });
-        isAudioUnlocked = true;
-    }
 
-    // --- File & Game Initialization ---
     function handleFileSelect(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -80,11 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function parseTxt(text) {
+        const activeSizes = window.innerWidth < 500 ? SIZE_PROFILES.mobile : SIZE_PROFILES.desktop;
+        
         const lines = text.split('\n').filter(line => line.trim() !== '' && !line.trim().startsWith('#'));
         const parsedData = [];
         lines.forEach((line, index) => {
-            const randomVmin = Math.random() * (RESPONSIVE_SIZES.maxVmin - RESPONSIVE_SIZES.minVmin) + RESPONSIVE_SIZES.minVmin;
-            const sizeString = `clamp(${RESPONSIVE_SIZES.minPixel}px, ${randomVmin.toFixed(2)}vmin, ${RESPONSIVE_SIZES.maxPixel}px)`;
+            const randomVmin = Math.random() * (activeSizes.maxVmin - activeSizes.minVmin) + activeSizes.minVmin;
+            const sizeString = `clamp(${activeSizes.minPixel}px, ${randomVmin.toFixed(2)}vmin, ${activeSizes.maxPixel}px)`;
             let parts;
             if (line.includes('|')) {
                 parts = line.split('|').map(p => p.trim());
@@ -97,8 +82,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return parsedData;
     }
 
-    function startGame() {
-        unlockAudio(); // 在游戏开始时解锁音频
+    async function startGame() {
+        if (!AudioManager.audioContext) {
+            AudioManager.init();
+            await AudioManager.loadAll();
+        }
         score = 0; combo = 0; updateScore(0); matchedPairs = 0;
         selectedWord = null; selectedDef = null; isProcessing = false;
         wordPool = shuffle([...masterWordList]);
@@ -108,7 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
         refillBalls();
     }
 
-    // --- Core Gameplay Loop ---
     function refillBalls() {
         const maxBalls = parseInt(maxBallsInput.value) || 10;
         const currentBalls = wordsContainer.children.length + defsContainer.children.length;
@@ -123,20 +110,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createSinglePairOfBalls(item) {
         const sizeString = item.size;
+        const activeSizes = window.innerWidth < 500 ? SIZE_PROFILES.mobile : SIZE_PROFILES.desktop;
+        
         const wordBall = document.createElement('div');
         wordBall.className = 'ball word-ball';
         wordBall.dataset.id = item.id;
         wordBall.textContent = item.word;
         wordBall.style.width = sizeString;
         wordBall.style.height = sizeString;
-        placeBall(wordBall, wordsContainer, RESPONSIVE_SIZES.maxPixel);
+        placeBall(wordBall, wordsContainer, activeSizes.maxPixel);
+        
         const defBall = document.createElement('div');
         defBall.className = 'ball def-ball';
         defBall.dataset.id = item.id;
         defBall.textContent = item.def;
         defBall.style.width = sizeString;
         defBall.style.height = sizeString;
-        placeBall(defBall, defsContainer, RESPONSIVE_SIZES.maxPixel);
+        placeBall(defBall, defsContainer, activeSizes.maxPixel);
+        
         wordsContainer.appendChild(wordBall);
         defsContainer.appendChild(defBall);
     }
@@ -149,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
             top: parseFloat(child.style.top),
         }));
         let pos, attempts = 0;
-        const margin = 10;
+        const margin = 5; // 在手机上可以减小一点强制间距
         do {
             pos = {
                 left: Math.random() * (containerRect.width - safetySize),
@@ -168,15 +159,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const dx = (newPos.left + newSafetySize / 2) - (existingBall.left + newSafetySize / 2);
             const dy = (newPos.top + newSafetySize / 2) - (existingBall.top + newSafetySize / 2);
             const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < newSafetySize + margin) return true;
+            if (distance < newSafetySize + margin) {
+                return true;
+            }
         }
         return false;
     }
 
-    // --- Event Handling & State Update ---
     function handleBallClick(event) {
         if (isProcessing) return;
-        playSound(selectSound);
+        AudioManager.play('select');
         const clickedBall = event.currentTarget;
         const id = clickedBall.dataset.id;
         const isWord = clickedBall.classList.contains('word-ball');
@@ -216,8 +208,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const points = 100 * combo;
         updateScore(score + points);
         showCombo(combo);
-        playSound(matchSound);
-        if (combo > 1) playSound(comboSound);
+        AudioManager.play('match');
+        if (combo > 1) AudioManager.play('combo');
         matchedPairs++;
         updateProgress();
         const matchedItem = masterWordList.find(item => item.id == id);
@@ -229,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedDef = null;
             isProcessing = false;
             if (matchedPairs === masterWordList.length) {
-                playSound(winSound);
+                AudioManager.play('win');
                 setTimeout(() => alert(`🎉 恭喜你，全部挑战成功！最终得分: ${score}`), 200);
             } else {
                 refillBalls();
@@ -238,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleMismatch(wordEl, defEl) {
-        playSound(errorSound);
+        AudioManager.play('error');
         combo = 0;
         showCombo(0);
         isProcessing = true;
